@@ -4,13 +4,12 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.util.List;
 import java.util.Scanner;
-import java.util.Set;
-
 import auth.api.WrongSecretException;
 import bank.api.BankManager;
+import bank.api.DoesNotHaveThisAssetException;
 import bank.api.InternalServerErrorException;
+import bank.api.NotEnoughAssetException;
 import exchange.api.DoesNotHaveThisStockException;
 import exchange.api.ExchangeManager;
 import exchange.api.InternalExchangeErrorException;
@@ -33,7 +32,6 @@ public class TradingApp {
 		bankManager = (BankManager) Naming.lookup("rmi://172.20.17.99/Bank");
 
 	}
-
 	public void run() {
 		int code;
 		AskBid.initAccount(ACCOUNTID, SECRET);
@@ -74,127 +72,95 @@ public class TradingApp {
 	}
 
 	private void bidMenu() throws RemoteException, NoSuchAccountException, WrongSecretException,
-			InternalExchangeErrorException, NotEnoughStockException, StockNotTradedException {
+			InternalExchangeErrorException, NotEnoughStockException, StockNotTradedException,
+		 InternalServerErrorException, DoesNotHaveThisAssetException, NotEnoughAssetException {
 		int operation;
 		System.out.println("Enter stock name:");
 		String name = s.nextLine();
-		boolean found = AskBid.stockSearch(name);
-		if (found) {
-			AskBid.printStockInfo(name);
+		boolean found = AskBid.stockSearch(name); // search for the stock by
+													// name
+
+		if (found) { // stock found
+			AskBid.printStockInfo(name); // print info about the stock
 			System.out.println("\n Do you want to place a bid? 1-Yes , 2- try another search , 3-back to menu");
 			operation = selectOperation(1, 3);
 
 			if (operation == 1) {
-				System.out.println("Please enter amount and price for the bid");
-				int amount = s.nextInt();
-				int price = s.nextInt();
-				int bidId = AskBid.placeBid(name, amount, price);
-				if (bidId == -1) {// the trader doesn't have enough money, the bid failed
-					System.out.println("Sorry, you don't have enough money");
-
+				Order pendingOrder = AskBid.orderSearch(name, "B");
+				if (pendingOrder != null) { // already have a bid for this stock
+					System.out.println("You have an open bid for this stock: \n");
+					AskBid.printOrderInfo(pendingOrder);
 				} else {
-					System.out.println("Your bid id is: " + bidId);
-				}
+					System.out.println("Please enter amount and price for the bid");
+					int amount = s.nextInt();
+					int price = s.nextInt();
+					int bidId = AskBid.placeBid(name, amount, price);
+					if (bidId == -1) { // the trader doesn't have enough money,
+										// the bid failed
+						System.err.println("Sorry, you don't have enough money for this bid");
 
-			} else if (operation == 2){
+					} else {
+						System.out.println("Bid has been placed, Your bid id is: " + bidId); // bid
+																								// done
+					}
+				}
+			} else if (operation == 2) {
 				bidMenu();
-			}else if (operation == 3){
+			} else if (operation == 3) {
 				run();
 			}
-		
 
-		
-			
-		} else { // stock wasnt found
+		} else { // stock wasn't found
 			System.out.println("Stock wasn't found 1-search again , 2- main ");
 			operation = selectOperation(1, 2);
-			
-			if(operation == 1)
+
+			if (operation == 1)
 				bidMenu();
-			else if(operation == 2)
+			else if (operation == 2)
 				run();
 
 		}
-	
-
-	
 
 	}
 
 	private void askMenu() throws RemoteException, WrongSecretException, InternalServerErrorException,
 			NoSuchAccountException, InternalExchangeErrorException, NotEnoughStockException, StockNotTradedException,
 			DoesNotHaveThisStockException {
-		Set<String> myAssets = bankManager.getAssets("1", 1);
+		int operation;
 
 		System.out.println("Your assets:\n");
+		AskBid.printAssetsInfo();
 
-		for (String assetName : myAssets) {
-			System.out.println(myAssets);
-		}
 		System.out.println("Please enter the name of the asset you would like to ask");
 		String assetNameToAsk = s.nextLine();
 
-		List<Integer> orders = exchange.getOpenOrders("1", 1); // Give list of
-																// pending ask
-																// id
+		AskBid.printStockInfo(assetNameToAsk);
+		System.out.println("Do you want to place an ask for this stock? 1- yes , 2- another search, 3-main");
+		operation = selectOperation(1, 3);
+		
+		if (operation == 1) { // place an ask
+			Order pendingAsk = AskBid.orderSearch(assetNameToAsk, "A");
+			if (pendingAsk != null) { // ask for this stock is not exist
+				System.out.println("enter amount and price for : " + assetNameToAsk.toUpperCase());
+				int amount = s.nextInt();
+				int price = s.nextInt();
 
-		for (Integer orderId : orders) {
-			Order tempOrder = exchange.getOrderDetails("1", 1, orders.get(orderId)); // Get
-																						// the
-																						// name
-																						// of
-																						// the
-																						// order
-			if (tempOrder.getStockName().compareToIgnoreCase(assetNameToAsk) > 0
-					&& tempOrder.getKind().compareTo("A") > 0) {// If name found
-																// on pending
-																// list
-				System.out.println("There is already a pending ask for that stock\n What Would you Like to do?");
-				System.out.println("1 - Update\n" + "2 - Back");
+				int askId = AskBid.placeAsk(assetNameToAsk, amount, price);
 
-				int operation = selectOperation(1, 2);
-				if (operation == 1) { // Update
-					printOrderInfo(tempOrder);
-					updateOrPlaceAsk(tempOrder.getStockName(), 1);
-					run();
+				if (askId == -1) {
+					System.err.println("ASK FAILED");
+				} else {
+					System.out.println("Ask has been placed, Your ask id is: " + askId);
 				}
 
-				else if (operation == 2) { // Back or search again
-					System.out.println(
-							"the stock you requested wasnt found. \n Press 1 for new search \nPress 2 for main menu");
-
-					int selection = selectOperation(1, 2);
-					if (selection == 1)
-						askMenu();
-					else
-						run();
-				}
-			} else {
-				updateOrPlaceAsk(assetNameToAsk, 1);
+			} else { // ask for this stock is already exist
+				System.out.println("You have an open ask for this stock: \n");
+				AskBid.printOrderInfo(pendingAsk);
 			}
-
+		} else if (operation == 2) {
+			askMenu();
+		} else if (operation == 3) {
+			run();
 		}
 	}
-
-	private void updateOrPlaceAsk(String name, int accountId)
-			throws RemoteException, WrongSecretException, NoSuchAccountException, NotEnoughStockException,
-			StockNotTradedException, DoesNotHaveThisStockException, InternalExchangeErrorException {
-		System.out.println("Please enter amount");
-		int amount = s.nextInt();
-		System.out.println("Please enter price");
-		int price = s.nextInt();
-
-		/*
-		 * Need to put here a check if user have enough money in back if(User
-		 * doesnt have enough money in back){
-		 * System.out.println("There is not enough money to make this bid");
-		 * update(order,accountId); }
-		 * 
-		 * else{ //user have enough money }
-		 */
-
-		int newAskId = exchange.placeAsk("1", 1, name, amount, price);
-		System.out.println("Ask has been placed, the Ask ID is: " + newAskId);
-	}
-
 }

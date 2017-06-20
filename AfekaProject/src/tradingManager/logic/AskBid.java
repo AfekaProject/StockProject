@@ -99,6 +99,24 @@ public class AskBid {
 		return foundStock;
 	}
 
+
+	public static Order orderSearch(String name, String kind)
+			throws RemoteException, WrongSecretException, NoSuchAccountException, InternalExchangeErrorException {
+
+		List<Integer> orders = exchange.getOpenOrders(secret, accountId); 
+		
+		for (Integer orderId : orders) {
+			Order tempOrder = exchange.getOrderDetails(secret, accountId, orders.get(orderId));
+			if (tempOrder.getStockName().compareToIgnoreCase(name) > 0 && tempOrder.getKind().compareTo(kind) > 0) {
+				return tempOrder;
+
+			}
+
+		}
+		return null;
+	}
+
+	
 	public static Order bidSearch(String name)
 			throws RemoteException, WrongSecretException, NoSuchAccountException, InternalExchangeErrorException {
 
@@ -153,4 +171,32 @@ public class AskBid {
 		}
 	}
 
+
+	public static void printAssetsInfo()
+			throws RemoteException, NoSuchAccountException, WrongSecretException, InternalExchangeErrorException {
+		int counter = 1;
+		Set<String> allAssets = exchange.getAssets(secret, accountId);
+
+		for (String nameOfAsset : allAssets) {
+			System.out.println((counter++) + nameOfAsset);
+
+		}
+
+	}
+	
+	public static int placeAsk(String name, int amount, int price) throws NoSuchAccountException,
+			NotEnoughStockException, StockNotTradedException, DoesNotHaveThisStockException,
+			InternalExchangeErrorException, RemoteException, WrongSecretException, InternalServerErrorException {
+		
+		boolean exist = bankManager.getAssets(name, accountId).contains(name.toLowerCase());
+
+		if (exist) {
+			int askId = exchange.placeAsk(name, accountId, name, amount, price);
+			return askId;
+		} else {
+			return -1;
+		}
+
+	}
+	
 }
