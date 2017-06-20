@@ -1,55 +1,56 @@
 package portfolioManager.storage;
 
-import java.util.Date;
+
 import java.util.Scanner;
 
 public class TransactionInfo {
+	private String stockName;
 	private int id;
-	private Date startDate;
-	private Date endDate;
-	private String status;
-	private String name;
+	private int amount;
+	private int price;
+	private String kind;
 
-	public TransactionInfo(String name, int id, Date startDate, Date endDate, String status) {
-		this.name = name;
+	public TransactionInfo(String stockName, int id, int amount, int price, String kind) {
+
+		this.stockName = stockName;
 		this.id = id;
-		this.startDate = startDate;
-		this.endDate = endDate;
-		this.status = status;
+		this.amount = amount;
+		this.price = price;
+		this.kind = kind;
 	}
 
 	public TransactionInfo(Scanner scanner) {
-		this.name = scanner.next();
+		this.stockName = scanner.next();
 		this.id = scanner.nextInt();
-		// this.startDate= scanner;
-		// this.endDate=scanner
-		this.status = scanner.next();
+		this.amount = scanner.nextInt();
+		this.price = scanner.nextInt();
+		this.kind = scanner.next();
+	}
+
+	public String getStockName() {
+		return stockName;
 	}
 
 	public int getId() {
 		return id;
 	}
 
-	public Date getStartDate() {
-		return startDate;
+	public int getAmount() {
+		return amount;
 	}
 
-	public Date getEndDate() {
-		return endDate;
+	public int getPrice() {
+		return price;
 	}
 
-	public String getStatus() {
-		return status;
-	}
-
-	public String getName() {
-		return name;
+	public String getKind() {
+		return kind;
 	}
 
 	@Override
 	public String toString() {
-		return "TransactionInfo [id=" + id + ", startDate=" + startDate + ", endDate=" + endDate + ", status=" + status
-				+ ", name=" + name + "]";
+		return "TransactionInfo [stockName=" + stockName + ", id=" + id + ", amount=" + amount + ", price=" + price
+				+ ", kind=" + kind + "]";
 	}
 
 }

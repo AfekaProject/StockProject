@@ -1,44 +1,39 @@
 package portfolioManager.logic;
 
-import java.util.Date;
-
 public class Transaction {
+	private String stockName;
 	private int id;
-	private Date startDate;
-	private Date endDate;
-	private String status;
-	private String name;
+	private int amount;
+	private int price;
+	private String kind;
 
-	public Transaction(String name, int id, Date startDate, Date endDate, String status) {
-		this.name = name;
+	public Transaction(String stockName, int id, int amount, int price, String kind) {
+
+		this.stockName = stockName;
 		this.id = id;
-		this.startDate = startDate;
-		this.endDate = endDate;
-		this.status = status;
+		this.amount = amount;
+		this.price = price;
+		this.kind = kind;
 	}
 
-	public String getStatus() {
-		return status;
-	}
-
-	public void setStatus(String status) {
-		this.status = status;
+	public String getStockName() {
+		return stockName;
 	}
 
 	public int getId() {
 		return id;
 	}
 
-	public Date getStartDate() {
-		return startDate;
+	public int getAmount() {
+		return amount;
 	}
 
-	public Date getEndDate() {
-		return endDate;
+	public int getPrice() {
+		return price;
 	}
 
-	public String getName() {
-		return name;
+	public String getKind() {
+		return kind;
 	}
 
 }

@@ -1,40 +1,34 @@
 package tradingManager.iface;
 
 import java.net.MalformedURLException;
-import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.Scanner;
 import auth.api.WrongSecretException;
-import bank.api.BankManager;
 import bank.api.DoesNotHaveThisAssetException;
 import bank.api.InternalServerErrorException;
 import bank.api.NotEnoughAssetException;
 import exchange.api.DoesNotHaveThisStockException;
-import exchange.api.ExchangeManager;
 import exchange.api.InternalExchangeErrorException;
 import exchange.api.NoSuchAccountException;
 import exchange.api.NotEnoughStockException;
 import exchange.api.Order;
 import exchange.api.StockNotTradedException;
+import mainProgram.Program;
 import tradingManager.logic.AskBid;
 
 public class TradingApp {
 	Scanner s;
-	ExchangeManager exchange;
-	BankManager bankManager;
-	private static final String SECRET = "82S9r5";
-	private static final int ACCOUNTID = 108;
 
-	public TradingApp() throws MalformedURLException, RemoteException, NotBoundException {
+	public TradingApp(int accountId ,String secret ,String ip) throws MalformedURLException, RemoteException, NotBoundException {
 		s = new Scanner(System.in);
-		exchange = (ExchangeManager) Naming.lookup("rmi://172.20.17.99/Exchange");
-		bankManager = (BankManager) Naming.lookup("rmi://172.20.17.99/Bank");
-
+		AskBid.initAccount(accountId, secret);
+		AskBid.initConnect(ip);
 	}
+
 	public void run() {
 		int code;
-		AskBid.initAccount(ACCOUNTID, SECRET);
+		
 		do {
 			showMenu();
 			code = selectOperation(1, 3);
@@ -47,7 +41,7 @@ public class TradingApp {
 					askMenu();
 					break;
 				case 3:
-					System.exit(0);
+					Program.showMain();
 				default:
 					System.out.println("Invalid choice.");
 				}
@@ -73,10 +67,11 @@ public class TradingApp {
 
 	private void bidMenu() throws RemoteException, NoSuchAccountException, WrongSecretException,
 			InternalExchangeErrorException, NotEnoughStockException, StockNotTradedException,
-		 InternalServerErrorException, DoesNotHaveThisAssetException, NotEnoughAssetException {
+			InternalServerErrorException, DoesNotHaveThisAssetException, NotEnoughAssetException, InterruptedException {
 		int operation;
 		System.out.println("Enter stock name:");
-		String name = s.nextLine();
+		String name = s.next();
+		s.nextLine();
 		boolean found = AskBid.stockSearch(name); // search for the stock by
 													// name
 
@@ -91,9 +86,10 @@ public class TradingApp {
 					System.out.println("You have an open bid for this stock: \n");
 					AskBid.printOrderInfo(pendingOrder);
 				} else {
-					System.out.println("Please enter amount and price for the bid");
-					int amount = s.nextInt();
+					System.out.println("Please enter price for the bid");
 					int price = s.nextInt();
+					System.out.println("Please enter amount of stocks:");
+					int amount = s.nextInt();
 					int bidId = AskBid.placeBid(name, amount, price);
 					if (bidId == -1) { // the trader doesn't have enough money,
 										// the bid failed
@@ -125,28 +121,30 @@ public class TradingApp {
 
 	private void askMenu() throws RemoteException, WrongSecretException, InternalServerErrorException,
 			NoSuchAccountException, InternalExchangeErrorException, NotEnoughStockException, StockNotTradedException,
-			DoesNotHaveThisStockException {
+			DoesNotHaveThisStockException, DoesNotHaveThisAssetException {
 		int operation;
-
+		
 		System.out.println("Your assets:\n");
 		AskBid.printAssetsInfo();
 
 		System.out.println("Please enter the name of the asset you would like to ask");
-		String assetNameToAsk = s.nextLine();
+		String assetNameToAsk = s.next();
+		s.nextLine();
 
 		AskBid.printStockInfo(assetNameToAsk);
 		System.out.println("Do you want to place an ask for this stock? 1- yes , 2- another search, 3-main");
 		operation = selectOperation(1, 3);
-		
+
 		if (operation == 1) { // place an ask
 			Order pendingAsk = AskBid.orderSearch(assetNameToAsk, "A");
 			if (pendingAsk != null) { // ask for this stock is not exist
-				System.out.println("enter amount and price for : " + assetNameToAsk.toUpperCase());
-				int amount = s.nextInt();
+				System.out.println("\nEnter price");
 				int price = s.nextInt();
+				System.out.println("Enter amount:");
+				int amount = s.nextInt();
 
 				int askId = AskBid.placeAsk(assetNameToAsk, amount, price);
-
+					
 				if (askId == -1) {
 					System.err.println("ASK FAILED");
 				} else {
@@ -156,6 +154,24 @@ public class TradingApp {
 			} else { // ask for this stock is already exist
 				System.out.println("You have an open ask for this stock: \n");
 				AskBid.printOrderInfo(pendingAsk);
+				System.out.println("Do you want to place another ask? 1 - yes, 2 - no");
+				operation = selectOperation(1, 2);
+				if (operation == 1){
+					System.out.println("\nEnter price");
+					int price = s.nextInt();
+					System.out.println("Enter amount:");
+					int amount = s.nextInt();
+					int askId = AskBid.placeAsk(assetNameToAsk, amount, price);
+					if (askId == -1) {
+						System.err.println("ASK FAILED");
+					} else {
+						System.out.println("Ask has been placed, Your ask id is: " + askId);
+					}
+				}
+				else {
+					run();
+				}
+					
 			}
 		} else if (operation == 2) {
 			askMenu();

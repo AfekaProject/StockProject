@@ -15,9 +15,9 @@ public class PorfolioStorage {
 	private File file;
 
 	public PorfolioStorage() throws IOException {
-		file = new File("DB.txt");
+		file = new File("portfolio.data");
 		if (!file.exists())
-			Files.createFile(Paths.get("DB.txt"));
+			Files.createFile(Paths.get("portfolio.data"));
 	}
 
 	public List<TransactionInfo> load() throws FileNotFoundException { ///////change get transactions
